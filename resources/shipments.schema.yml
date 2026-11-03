@@ -1,0 +1,11 @@
+# Unity Catalog schema for every table of the shipments pipeline.
+#
+# Grants are intentionally not managed by this bundle; docs/deploy.md lists the
+# grants to apply (read-only for analysts, volume write for the producer).
+
+resources:
+  schemas:
+    shipments:
+      catalog_name: ${var.catalog}
+      name: ${var.schema}
+      comment: Shipments lakehouse (bronze, silver, gold) managed by the shipments_lakeflow bundle.

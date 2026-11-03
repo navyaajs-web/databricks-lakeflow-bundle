@@ -1,0 +1,13 @@
+# Managed Unity Catalog volume where producers drop raw JSON files under
+# landing/shipments/. Auto Loader reads from here.
+
+resources:
+  volumes:
+    landing:
+      catalog_name: ${var.catalog}
+      # Reference the deployed schema (not var.schema) so the dev-mode name
+      # prefix is picked up automatically.
+      schema_name: ${resources.schemas.shipments.name}
+      name: landing
+      volume_type: MANAGED
+      comment: Raw JSON shipment events written by upstream producers.

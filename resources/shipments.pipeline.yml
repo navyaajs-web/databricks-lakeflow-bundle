@@ -1,0 +1,26 @@
+# Lakeflow Spark Declarative Pipeline (formerly Delta Live Tables).
+
+resources:
+  pipelines:
+    shipments_pipeline:
+      name: shipments-pipeline
+      # Tables are published as <catalog>.<schema>.<table> in Unity Catalog.
+      catalog: ${var.catalog}
+      schema: ${resources.schemas.shipments.name}
+      # Serverless: no cluster configuration to maintain, Photon included.
+      serverless: true
+      channel: CURRENT
+      # Triggered (not continuous): the job decides when to update, which
+      # keeps cost proportional to the data volume.
+      continuous: false
+      # root_path is added to sys.path at run time, which is what lets the
+      # pipeline file `import shipments.transforms`.
+      root_path: ../src
+      libraries:
+        - file:
+            path: ../src/pipelines/shipments_pipeline.py
+      configuration:
+        shipments.landing_path: /Volumes/${var.catalog}/${resources.schemas.shipments.name}/${resources.volumes.landing.name}/shipments
+      tags:
+        domain: logistics
+        layer: bronze-silver-gold
