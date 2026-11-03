@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Lint and test (ruff, pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      # PySpark 4 needs Java 17+.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - run: make setup
+      - run: make lint
+      - run: make test
+
+  # Secrets cannot be used in a job-level `if`, so a tiny job turns "is the
+  # secret set?" into an output. Forks and fresh clones simply skip validation.
+  workspace-check:
+    name: Detect Databricks workspace
+    runs-on: ubuntu-latest
+    outputs:
+      configured: ${{ steps.check.outputs.configured }}
+    steps:
+      - id: check
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+        run: |
+          if [ -n "$DATABRICKS_HOST" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "DATABRICKS_HOST secret not set; bundle validation will be skipped."
+          fi
+
+  bundle-validate:
+    name: databricks bundle validate
+    needs: workspace-check
+    if: needs.workspace-check.outputs.configured == 'true'
+    runs-on: ubuntu-latest
+    env:
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      # Prefer OAuth M2M with a service principal; a PAT also works.
+      DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+      DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: databricks/setup-cli@main
+      - run: make validate TARGET=dev
