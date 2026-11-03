@@ -1,0 +1,37 @@
+# Databricks
+.databricks/
+
+# Terraform (kept for consistency across the author's repos)
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local Spark artefacts from tests
+spark-warehouse/
+metastore_db/
+derby.log
+checkpoint/
+
+# Generated sample data (make sample-data)
+data/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+.databrickscfg
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store

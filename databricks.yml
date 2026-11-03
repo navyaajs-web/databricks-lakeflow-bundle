@@ -1,0 +1,65 @@
+# Databricks Asset Bundle (Declarative Automation Bundle) for the shipments
+# Lakeflow pipeline and its job.
+#
+#   databricks bundle validate -t dev
+#   databricks bundle deploy   -t dev
+#   databricks bundle run      -t dev shipments_daily
+#
+# The workspace host is not committed: it comes from DATABRICKS_HOST or a
+# profile in ~/.databrickscfg.
+
+bundle:
+  name: shipments_lakeflow
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: >-
+      Unity Catalog catalog that holds the schema. It must already exist.
+      "workspace" is the default catalog of serverless and Free Edition workspaces.
+    default: workspace
+  schema:
+    description: >-
+      Schema created by this bundle for all pipeline tables and the landing volume.
+      In the dev target, development mode prefixes it with the deploying user's name.
+    default: shipments
+  warehouse_id:
+    description: >-
+      SQL warehouse that runs the KPI SQL task. It is looked up by name; to use a
+      different warehouse, override it with --var warehouse_id=<id>.
+    lookup:
+      warehouse: Serverless Starter Warehouse
+  prod_run_as:
+    description: >-
+      Application ID of the service principal that owns and runs prod resources.
+      Set it in the release pipeline with BUNDLE_VAR_prod_run_as; it is unused in dev.
+    default: ""
+
+targets:
+  dev:
+    # Development mode prefixes resource names with "[dev <user>]", pauses
+    # schedules, runs pipelines in development mode and deploys to the user's
+    # home folder, so several engineers can share one workspace safely.
+    mode: development
+    default: true
+
+  prod:
+    # Production mode keeps schedules active and refuses ad-hoc settings such
+    # as development-mode pipelines. Deploy from CI authenticated as the
+    # service principal, so the bundle files live in that principal's home
+    # folder: one copy, not editable by every workspace user.
+    mode: production
+    workspace:
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    run_as:
+      service_principal_name: ${var.prod_run_as}
+    variables:
+      catalog: logistics_prod
+      schema: shipments
+    resources:
+      jobs:
+        shipments_daily:
+          schedule:
+            pause_status: UNPAUSED

@@ -1,0 +1,44 @@
+[project]
+name = "databricks-lakeflow-bundle"
+version = "0.1.0"
+description = "Databricks Asset Bundle deploying a Lakeflow Spark Declarative Pipeline (shipments domain) and a Lakeflow Job."
+readme = "README.md"
+license = "MIT"
+authors = [{ name = "Navya Sindhu" }]
+requires-python = ">=3.12"
+# Runtime dependencies are provided by Databricks serverless compute.
+dependencies = []
+
+[dependency-groups]
+# Install with: python -m pip install --group dev  (pip >= 25.1)
+# pyspark 4.0.x supports Python 3.13 and matches the Spark 4 APIs on current
+# Databricks serverless; the transforms only use APIs available in 3.5+ too.
+dev = [
+  "pyspark==4.0.5",
+  "pytest==8.4.2",
+  "pyyaml==6.0.3",
+  "ruff==0.14.3",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# src/ mirrors the pipeline's root_path; "." makes scripts/ and tests/ importable.
+pythonpath = ["src", "."]
+addopts = "-ra --strict-markers"
+filterwarnings = ["ignore::DeprecationWarning:pyspark.*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "scripts", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "UP", "SIM", "RUF", "N"]
+# `functions as F` / `types as T` is the universal PySpark convention.
+ignore = ["N812"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["shipments", "scripts", "tests"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["E501"]
